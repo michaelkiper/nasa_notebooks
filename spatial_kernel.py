@@ -25,15 +25,18 @@ def main():
     """
     parser = argparse.ArgumentParser(description='Spatial kernal for calculating the intrinsic dimensionality of a hyperspectral scene.')
     
-    parser.add_argument('out_path', type=str)
+    parser.add_argument('out_path', type=str) #specify the out file name too
     parser.add_argument('kernal_size', type=int, nargs=2) # x y
     parser.add_argument('reflectance_file', type=str)
     parser.add_argument('noise_file', type=bool, default=True) # pickle with noise array - !!TAKE OUT BAD REFLECTANCE VALUES PRIOR!!
     parser.add_argument('-normalize', type=bool, default=True)
-    parser.add_argument('-valid_rfl_indices', type=bool, default=True) # pickle with an np.ndarray of the reflectance wavelength values to use
+    parser.add_argument('-valid_rfl_indices', type=str) # pickle with an np.ndarray of the reflectance wavelength values to use
     parser.add_argument('-ul_br', type=int, nargs=2) # 4 seperate integers of the index coordinate range (NOT UTM) i.e. 1000 500 900 510 (y1, x1, y2, x2)
     parser.add_argument('-replace_nan', type=str, nargs=1, choices=["median", "mean"])
     args = parser.parse_args()
+    
+    if ".pickle" not in args.out_path:
+        raise Exception("'out_path' needs to end in .pickle")
     
     reflectance_file = pickle.load(open(args.reflectance_file, 'rb'))
     
@@ -92,6 +95,9 @@ def main():
                     complete_rfls = complete_rfls[:, :, good_indices]
                 complete_rfls = np.reshape(complete_rfls, (complete_rfls.shape[0]*complete_rfls.shape[1], complete_rfls.shape[2]))
                 
+                if args.normalize:
+                    complete_rfls = np.array([rfl/(sum([i**2 for i in rfl])**0.5) for rfl in complete_rfls])
+                
                 # now replace nan values if specified
                 if np.isnan(complete_rfls).any() and args.replace_nan is None:
                     file_reflectances.append(np.array([]))
@@ -129,7 +135,7 @@ def main():
                     
                 return_list[i] = this_dict
                 
-    return return_list
+    pickle.dump(return_list, open(, "wb"))
 
 
 def get_rfl(_input):
